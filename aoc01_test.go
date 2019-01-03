@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAOC01_1(t *testing.T) {
+func TestAoC01_1(t *testing.T) {
 	freq := 0
 	for _, ds := range strings.Fields(input01_1) {
 		d, err := strconv.Atoi(ds)
@@ -19,7 +19,7 @@ func TestAOC01_1(t *testing.T) {
 	t.Log(freq)
 }
 
-func TestAOC01_2(t *testing.T) {
+func TestAoC01_2(t *testing.T) {
 	freq := 0
 	seen := make(map[int]int)
 	ctx, cancel := context.WithCancel(context.Background())

@@ -5,12 +5,10 @@ import (
 	"testing"
 )
 
-func TestAOC02_1(t *testing.T) {
+func TestAoC02(t *testing.T) {
 	v := BoxIDListChecksum(input02)
 	t.Log(v)
-}
 
-func TestAOC02_2(t *testing.T) {
 	l := BoxIDListSimilar(input02)
 	for _, v := range l {
 		t.Log(v)

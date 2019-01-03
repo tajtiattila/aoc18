@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestAOC04(t *testing.T) {
+func TestAoC04(t *testing.T) {
 	data := input04(t)
 	id, m := FindMostSleepyGuard(data)
 	r := id * m
@@ -28,7 +28,7 @@ func input04(t *testing.T) []WatchEntry {
 	return r
 }
 
-func TestAOC04Sample(t *testing.T) {
+func TestAoC04Sample(t *testing.T) {
 	data, err := ParseOnWatchLog(sample04v)
 	if err != nil {
 		t.Fatalf("parse on watch log: %v", err)

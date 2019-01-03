@@ -5,13 +5,9 @@ import (
 	"testing"
 )
 
-func TestAOC03_1(t *testing.T) {
+func TestAoC03(t *testing.T) {
 	data := input03(t)
 	t.Log(FindCutSpecOverlap(data, 2))
-}
-
-func TestAOC03_2(t *testing.T) {
-	data := input03(t)
 	t.Log(FindCutSpecSingleID(data))
 }
 
