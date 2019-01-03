@@ -26,6 +26,23 @@ func FindCutSpecOverlap(specs []CutSpec, minovl int) int {
 	return res
 }
 
+func FindCutSpecSingleID(specs []CutSpec) int {
+	dx, dy := maxDim(specs)
+	f := newFabric(dx, dy)
+	for _, cs := range specs {
+		f.addCutSpec(cs)
+	}
+
+	for _, cs := range specs {
+		n := f.getCutSpec(cs)
+		if n == cs.Dx*cs.Dy {
+			return cs.ID
+		}
+	}
+
+	return 0
+}
+
 func maxDim(v []CutSpec) (dx, dy int) {
 	for _, cs := range v {
 		cx, cy := cs.X+cs.Dx, cs.Y+cs.Dy
@@ -64,6 +81,16 @@ func (f *fabric) addCutSpec(cs CutSpec) {
 			f.add(cs.X+x, cs.Y+y, 1)
 		}
 	}
+}
+
+func (f *fabric) getCutSpec(cs CutSpec) int {
+	n := 0
+	for x := 0; x < cs.Dx; x++ {
+		for y := 0; y < cs.Dy; y++ {
+			n += f.get(cs.X+x, cs.Y+y)
+		}
+	}
+	return n
 }
 
 func (f *fabric) get(x, y int) int {
