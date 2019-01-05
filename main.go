@@ -6,6 +6,9 @@ var verbose bool
 
 func main() {
 	flag.BoolVar(&verbose, "v", false, "verbose mode")
-	wristdevhack()
-	reservoirresearch()
+	flag.Parse()
+
+	wristdevhack()      // 16
+	reservoirresearch() // 17
+	collectlumber()     // 18
 }
