@@ -86,7 +86,8 @@ func wristdevhack() {
 		}
 	}
 
-	var state wristdev.State
+	arch := wristdev.Arch(4)
+	state := arch.State()
 
 	for _, instr := range program {
 		op := codeop[instr.opcode]
@@ -94,7 +95,7 @@ func wristdevhack() {
 		state.Run(op, a, b, c)
 	}
 
-	fmt.Println("16/2:", state[0])
+	fmt.Println("16/2:", state.R[0])
 }
 
 type wristdevInstr struct {
@@ -106,19 +107,19 @@ func (i wristdevInstr) args() (a, b, c int) {
 }
 
 type wristdevSample struct {
-	before wristdev.State
+	before *wristdev.State
 
 	instr wristdevInstr
 
-	after wristdev.State
+	after *wristdev.State
 }
 
 func (s *wristdevSample) possibleOps(dst []wristdev.Operator) []wristdev.Operator {
 	for _, op := range wristdev.Ops() {
-		state := s.before
+		state := s.before.Clone()
 		a, b, c := s.instr.args()
 		state.Run(op, a, b, c)
-		if state == s.after {
+		if state.RegistersEqual(s.after) {
 			dst = append(dst, op)
 		}
 	}
@@ -131,6 +132,8 @@ func (s *wristdevSample) countMatchingOp() int {
 
 func puzzleInput16() (samples []wristdevSample, program []wristdevInstr) {
 	lines := PuzzleInputLines(16)
+
+	arch := wristdev.Arch(4)
 
 	i := 0
 	for i+3 < len(lines) {
@@ -145,7 +148,7 @@ func puzzleInput16() (samples []wristdevSample, program []wristdevInstr) {
 			break
 		}
 
-		before := wristdev.St(a, b, c, d)
+		before := arch.State(a, b, c, d)
 
 		instr, err := parsewristdevInstr(lines[i+1])
 		if err != nil {
@@ -157,7 +160,7 @@ func puzzleInput16() (samples []wristdevSample, program []wristdevInstr) {
 			log.Fatalf("error parsing state near line %d\n", i+3)
 		}
 
-		after := wristdev.St(a, b, c, d)
+		after := arch.State(a, b, c, d)
 
 		samples = append(samples, wristdevSample{
 			before: before,
