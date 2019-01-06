@@ -8,7 +8,7 @@ import (
 )
 
 func wristdev19() {
-	ipreg, prog := puzzleInput19()
+	ipreg, prog := programInput(19)
 
 	const nreg = 6
 
@@ -81,8 +81,8 @@ func runwristprog(state *wristdev.State, prog []wristdev.Instruction) bool {
 	return !state.Step(prog)
 }
 
-func puzzleInput19() (ipreg int, prog []wristdev.Instruction) {
-	lines := PuzzleInputLines(19)
+func programInput(n int) (ipreg int, prog []wristdev.Instruction) {
+	lines := PuzzleInputLines(n)
 
 	var ipspec string
 	ipspec, lines = lines[0], lines[1:]

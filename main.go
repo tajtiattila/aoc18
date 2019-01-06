@@ -41,6 +41,7 @@ func main() {
 	add(18, collectlumber)
 	add(19, wristdev19)
 	add(20, facilitymaxdoors)
+	add(21, wristdev21)
 
 	if flag.NArg() == 0 {
 		for _, p := range puzzles {
