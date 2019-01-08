@@ -43,6 +43,7 @@ func main() {
 	add(20, facilitymaxdoors)
 	add(21, wristdev21)
 	add(22, modemaze22)
+	add(23, teleport23)
 
 	if flag.NArg() == 0 {
 		for _, p := range puzzles {
