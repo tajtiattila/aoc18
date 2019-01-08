@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 
+	"github.com/tajtiattila/aoc18/bitset"
 	"github.com/tajtiattila/aoc18/nanobot"
 )
 
@@ -69,113 +71,128 @@ func abs(x int) int {
 	return -x
 }
 
-func findbest23(bots []nanobot.Bot) {
-	var bounds nanobot.MBox
-	for _, b := range bots {
-		bounds = bounds.Extend(b.MBox())
+func findbest23(src []nanobot.Bot) {
+	type boti struct {
+		c nanobot.MPoint
+		r int
+
+		bb nanobot.MBox
 	}
 
-	w := verbosew
-
-	tree := nanobot.MTree{Bounds: bounds}
-	for i, b := range bots {
-		fmt.Fprintf(w, "adding bot #%d\n", i)
-		tree.Add(b.MBox())
+	var bots []boti
+	for _, bot := range src {
+		bots = append(bots, boti{
+			c:  nanobot.MPt(bot.X, bot.Y, bot.Z),
+			r:  bot.Radius,
+			bb: bot.MBox(),
+		})
 	}
 
-	var best *nanobot.MTree
-	tree.WalkLeaves(func(node *nanobot.MTree) {
-		if best == nil || node.Count > best.Count {
-			best = node
+	splits := make([][]int, 4)
+	for axis := range splits {
+		var v []int
+		for _, bot := range bots {
+			v = append(v, bot.bb.Min[axis], bot.bb.Max[axis])
 		}
-	})
+		sort.Ints(v)
 
-	best.Bounds.WalkPoints(func(x, y, z int) {
-		fmt.Println(" ", x, y, z, x+y+z)
-	})
-}
+		// dedup
+		j, lastc := 1, v[0]
+		for _, c := range v[1:] {
+			if c != lastc {
+				v[j] = c
+				j++
+				lastc = c
+			}
+		}
 
-type findbestinf struct {
-	bots []nanobot.Bot
-
-	best []int
-
-	bestd int
-}
-
-func findbest23old(bots []nanobot.Bot) {
-	inf := findbestinf{
-		bots: bots,
+		v = v[:j]
+		splits[axis] = v[:j]
 	}
-	for i, b := range bots {
-		fmt.Println(i)
-		findbest23x(&inf, b.MBox(), []int{i})
-		if inf.bestd > 0 {
-			fmt.Println("23/2:", inf.bestd)
+
+	type axisrange struct {
+		lo, hi int // index into splits[axis]
+	}
+	var bounds [4]axisrange
+	for axis := range bounds {
+		bounds[axis].lo = 0
+		bounds[axis].hi = len(splits[axis]) - 1
+	}
+
+	var best struct {
+		x, y, z int
+		count   int
+		dist    int
+	}
+
+	yield := func(rng [4]axisrange, count int) {
+		if count > best.count {
+			best.count = count
+			var bb nanobot.MBox
+			for axis := 0; axis < 4; axis++ {
+				bb.Min[axis] = splits[axis][rng[axis].lo]
+				bb.Max[axis] = splits[axis][rng[axis].hi]
+			}
+			if bb.Empty() {
+				panic("empty result")
+			}
+			x, y, z := bb.Min.Coords()
+			best.x, best.y, best.z = x, y, z
+			best.dist = x + y + z
+		}
+	}
+
+	var rec func(axis int, rng [4]axisrange, active bitset.Bitset)
+
+	rec = func(axis int, rng [4]axisrange, active bitset.Bitset) {
+
+		cansplit := false
+		for i := 0; i < 4; i++ {
+			axis = (axis + 1) % 4
+			if rng[axis].lo+1 < rng[axis].hi {
+				cansplit = true
+				break
+			}
+		}
+
+		if !cansplit {
+			yield(rng, active.Count())
 			return
 		}
-	}
 
-}
-
-func findbest23x(inf *findbestinf, box nanobot.MBox, v []int) {
-	n := len(v)
-	starti := v[n-1] + 1
-
-	added := false
-	for i := starti; i < len(inf.bots); i++ {
-
-		if rest := len(inf.bots) - i; len(v)+rest < len(inf.best) {
-			return // can't get better
+		if active.Count() < best.count {
+			return
 		}
 
-		c := inf.bots[i].MBox()
-		cross := box.Intersect(c)
-		if !cross.Empty() {
-			v = append(v[:n], i)
-			findbest23x(inf, cross, v)
-			added = true
-		}
-	}
-	v = v[:n]
+		lo, hi := rng[axis].lo, rng[axis].hi
+		mid := (lo + hi) / 2
+		split := splits[axis][mid]
 
-	if !added {
-		fmt.Println(" ", len(v))
-
-	}
-
-	if !added && len(v) > len(inf.best) {
-
-		/*
-			box.WalkPoints(func(x, y, z int) {
-				for _, i := range v {
-					if !inf.bots[i].InRange(x, y, z) {
-						log.Fatalf("bot %d not in range", i)
-					}
+		var nlo, nhi bitset.Bitset
+		for i, bot := range bots {
+			if active.Get(i) {
+				if bot.bb.Min[axis] < split {
+					nlo.Set(i)
 				}
-			})
-
-			tb := inf.bots[v[0]].MBox()
-			for _, i := range v[1:] {
-				o := inf.bots[i].MBox()
-				tb.Intersect(o)
+				if split < bot.bb.Max[axis] {
+					nhi.Set(i)
+				}
 			}
+		}
 
-			if tb.Empty() {
-				log.Fatalln("invalid")
-			}
-		*/
-
-		inf.best = make([]int, len(v))
-		copy(inf.best, v)
-
-		x, y, z, _ := box.MinPoint()
-		inf.bestd = x + y + z
-
-		if verbose {
-			box.WalkPoints(func(x, y, z int) {
-				fmt.Println(" ", x, y, z, x+y+z)
-			})
+		rlo, rhi := rng, rng
+		rlo[axis].hi = mid
+		rhi[axis].lo = mid
+		if nlo.Count() > nhi.Count() {
+			rec(axis, rlo, nlo)
+			rec(axis, rhi, nhi)
+		} else {
+			rec(axis, rhi, nhi)
+			rec(axis, rlo, nlo)
 		}
 	}
+
+	rec(0, bounds, bitset.Ones(len(bots)))
+
+	fmt.Println("23/2:", best.dist)
 }
