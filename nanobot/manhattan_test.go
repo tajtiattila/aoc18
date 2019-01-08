@@ -1,6 +1,7 @@
 package nanobot
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -26,7 +27,7 @@ func TestMPoint(t *testing.T) {
 	}()
 
 	for p := range ch {
-		m := Mpt(p.x, p.y, p.z)
+		m := MPt(p.x, p.y, p.z)
 		if !m.Valid() {
 			t.Fatalf("point %d,%d,%d (%d,%d,%d) is invalid",
 				p.x, p.y, p.z, m.Xm, m.Ym, m.Zm)
@@ -37,10 +38,33 @@ func TestMPoint(t *testing.T) {
 				x, y, z, m.Xm, m.Ym, m.Zm, p.x, p.y, p.z)
 		}
 	}
+
+	// ensure only one point is valid in the space
+	m := make(map[point][]MPoint)
+	for x := -n; x < n; x++ {
+		for y := -n; y < n; y++ {
+			for z := -n; z < n; z++ {
+				for w := -n; w < n; w++ {
+					p := MPoint{Xm: x, Ym: y, Zm: z, Wm: w}
+					if p.Valid() {
+						x, y, z := p.Coords()
+						q := point{x, y, z}
+						m[q] = append(m[q], p)
+					}
+				}
+			}
+		}
+	}
+
+	for k, v := range m {
+		if len(v) != 1 {
+			t.Fatal(k, MPt(k.x, k.y, k.z), v)
+		}
+	}
 }
 
 func TestMBox(t *testing.T) {
-	for r := 1; r < 10; r++ {
+	for r := 1; r < 12; r++ {
 
 		var want []point
 		for x := -r; x <= r; x++ {
@@ -63,32 +87,115 @@ func TestMBox(t *testing.T) {
 			}
 		}
 
-		var got []point
 		bb := Equidist(0, 0, 0, r)
-		for xm := bb.Min.Xm; xm < bb.Max.Xm; xm++ {
-			for ym := bb.Min.Ym; ym < bb.Max.Ym; ym++ {
-				for zm := bb.Min.Zm; zm < bb.Max.Zm; zm++ {
-					m := MPoint{Xm: xm, Ym: ym, Zm: zm}
-					if m.Valid() {
-						x, y, z := m.Coords()
-						got = append(got, point{x: x, y: y, z: z})
+
+		lw := len(want)
+		np := bb.NumPoints()
+
+		t.Logf("raduis %d -> %d points", r, lw)
+		t.Log(np, np/lw, np%lw)
+
+		got := mboxCoords(t, bb)
+
+		if len(got) != len(want) {
+			t.Fatalf("with r=%d got len %d; want %d\n%v\n%v", r, len(got), len(want), got, want)
+		}
+	}
+}
+
+func TestMBoxIntersect(t *testing.T) {
+	type test struct {
+		npoints int
+		minp    point
+		boxes   []MBox
+	}
+	tests := []test{
+		{
+			npoints: 0,
+			boxes: []MBox{
+				Equidist(10, 12, 12, 2),
+				Equidist(12, 14, 12, 2),
+				Equidist(16, 12, 12, 4),
+				Equidist(14, 14, 14, 6),
+				Equidist(50, 50, 50, 200),
+				Equidist(10, 10, 10, 5),
+			},
+		},
+		{
+			npoints: 1,
+			minp:    point{x: 12, y: 12, z: 12},
+			boxes: []MBox{
+				Equidist(10, 12, 12, 2),
+				Equidist(12, 14, 12, 2),
+				Equidist(16, 12, 12, 4),
+				Equidist(14, 14, 14, 6),
+				Equidist(50, 50, 50, 200),
+			},
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(fmt.Sprintf("%d", tn), func(t *testing.T) {
+			sum := tt.boxes[0]
+			for i, b := range tt.boxes[1:] {
+				sum = sum.Intersect(b)
+				if tt.npoints > 0 && sum.Empty() {
+					t.Fatalf("box %d empty", i+1)
+				}
+			}
+
+			got := sum.NumPoints()
+			if got != tt.npoints {
+				t.Fatalf("got numpoints %d; want %d", got, tt.npoints)
+			}
+
+			if got != 1 {
+				return
+			}
+
+			x, y, z, ok := sum.MinPoint(1e6)
+			gotp := point{x: x, y: y, z: z}
+			if !ok || gotp != tt.minp {
+				t.Fatalf("got %v min point %v; want %v", ok, gotp, tt.minp)
+			}
+		})
+	}
+}
+
+func mboxCoords(t *testing.T, bb MBox) []point {
+	m := make(map[point][]MPoint)
+	for xm := bb.Min.Xm; xm < bb.Max.Xm; xm++ {
+		for ym := bb.Min.Ym; ym < bb.Max.Ym; ym++ {
+			for zm := bb.Min.Zm; zm < bb.Max.Zm; zm++ {
+				for wm := bb.Min.Wm; wm < bb.Max.Wm; wm++ {
+					p := MPoint{Xm: xm, Ym: ym, Zm: zm, Wm: wm}
+					if p.Valid() {
+						x, y, z := p.Coords()
+						q := point{x: x, y: y, z: z}
+						m[q] = append(m[q], p)
 					}
 				}
 			}
 		}
+	}
 
-		sort.Slice(got, func(i, j int) bool {
-			if got[i].x != got[j].x {
-				return got[i].x < got[j].x
-			}
-			if got[i].y != got[j].y {
-				return got[i].y < got[j].y
-			}
-			return got[i].z < got[j].z
-		})
-
-		if len(got) != len(want) {
-			t.Fatalf("with r=%d got len %d; want %d", r, len(got), len(want))
+	v := make([]point, 0, len(m))
+	for k, pv := range m {
+		v = append(v, k)
+		if len(pv) != 1 {
+			t.Fatal(k, MPt(k.x, k.y, k.z), pv)
 		}
 	}
+
+	sort.Slice(v, func(i, j int) bool {
+		if v[i].x != v[j].x {
+			return v[i].x < v[j].x
+		}
+		if v[i].y != v[j].y {
+			return v[i].y < v[j].y
+		}
+		return v[i].z < v[j].z
+	})
+
+	return v
 }

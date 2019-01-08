@@ -2,9 +2,9 @@ package nanobot
 
 import "math/bits"
 
-type Nanobot struct {
-	X, Y, Z int64
-	R       int64
+type Bot struct {
+	X, Y, Z int
+	Radius  int
 }
 
 type word uint64
