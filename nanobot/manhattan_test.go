@@ -29,13 +29,13 @@ func TestMPoint(t *testing.T) {
 	for p := range ch {
 		m := MPt(p.x, p.y, p.z)
 		if !m.Valid() {
-			t.Fatalf("point %d,%d,%d (%d,%d,%d) is invalid",
-				p.x, p.y, p.z, m.Xm, m.Ym, m.Zm)
+			t.Fatalf("point %d,%d,%d %v is invalid",
+				p.x, p.y, p.z, m)
 		}
 		x, y, z := m.Coords()
 		if x != p.x || y != p.y || z != p.z {
-			t.Fatalf("got %d,%d,%d (%d,%d,%d); want %d,%d,%d",
-				x, y, z, m.Xm, m.Ym, m.Zm, p.x, p.y, p.z)
+			t.Fatalf("got %d,%d,%d %v; want %d,%d,%d",
+				x, y, z, m, p.x, p.y, p.z)
 		}
 	}
 
@@ -45,7 +45,7 @@ func TestMPoint(t *testing.T) {
 		for y := -n; y < n; y++ {
 			for z := -n; z < n; z++ {
 				for w := -n; w < n; w++ {
-					p := MPoint{Xm: x, Ym: y, Zm: z, Wm: w}
+					p := MPoint{x, y, z, w}
 					if p.Valid() {
 						x, y, z := p.Coords()
 						q := point{x, y, z}
@@ -153,7 +153,7 @@ func TestMBoxIntersect(t *testing.T) {
 				return
 			}
 
-			x, y, z, ok := sum.MinPoint(1e6)
+			x, y, z, ok := sum.MinPoint()
 			gotp := point{x: x, y: y, z: z}
 			if !ok || gotp != tt.minp {
 				t.Fatalf("got %v min point %v; want %v", ok, gotp, tt.minp)
@@ -164,11 +164,11 @@ func TestMBoxIntersect(t *testing.T) {
 
 func mboxCoords(t *testing.T, bb MBox) []point {
 	m := make(map[point][]MPoint)
-	for xm := bb.Min.Xm; xm < bb.Max.Xm; xm++ {
-		for ym := bb.Min.Ym; ym < bb.Max.Ym; ym++ {
-			for zm := bb.Min.Zm; zm < bb.Max.Zm; zm++ {
-				for wm := bb.Min.Wm; wm < bb.Max.Wm; wm++ {
-					p := MPoint{Xm: xm, Ym: ym, Zm: zm, Wm: wm}
+	for xm := bb.Min[0]; xm < bb.Max[0]; xm++ {
+		for ym := bb.Min[1]; ym < bb.Max[1]; ym++ {
+			for zm := bb.Min[2]; zm < bb.Max[2]; zm++ {
+				for wm := bb.Min[3]; wm < bb.Max[3]; wm++ {
+					p := MPoint{xm, ym, zm, wm}
 					if p.Valid() {
 						x, y, z := p.Coords()
 						q := point{x: x, y: y, z: z}

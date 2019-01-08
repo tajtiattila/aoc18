@@ -7,6 +7,21 @@ type Bot struct {
 	Radius  int
 }
 
+func (b Bot) MBox() MBox {
+	return Equidist(b.X, b.Y, b.Z, b.Radius)
+}
+
+func (b Bot) InRange(x, y, z int) bool {
+	return b.Radius >= abs(x-b.X)+abs(y-b.Y)+abs(z-b.Z)
+}
+
+func abs(i int) int {
+	if i >= 0 {
+		return i
+	}
+	return -i
+}
+
 type word uint64
 
 const (
@@ -25,11 +40,21 @@ type Botset struct {
 	count int
 }
 
+func (s *Botset) Cap() int { return MaxBot }
+
 func (s *Botset) Set(n int) {
 	i, m := n/wordBits, word(1)<<uint(n&maskBit)
 	if s.bits[i]&m == 0 {
 		s.bits[i] |= m
 		s.count++
+	}
+}
+
+func (s *Botset) Clear(n int) {
+	i, m := n/wordBits, word(1)<<uint(n&maskBit)
+	if s.bits[i]&m != 0 {
+		s.bits[i] &= ^m
+		s.count--
 	}
 }
 

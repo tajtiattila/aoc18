@@ -1,40 +1,38 @@
 package nanobot
 
 // point in manhattan space
-type MPoint struct {
-	Xm, Ym, Zm, Wm int
-}
+type MPoint [4]int
 
 func MPt(x, y, z int) MPoint {
 	return MPoint{
-		Xm: -x + y + z,
-		Ym: x - y + z,
-		Zm: x + y - z,
-		Wm: x + y + z,
+		-x + y + z,
+		x - y + z,
+		x + y - z,
+		x + y + z,
 	}
 }
 
 func (p MPoint) mcoords() (xm, ym, zm, wm int) {
-	return p.Xm, p.Ym, p.Zm, p.Wm
+	return p[0], p[1], p[2], p[3]
 }
 
 /*
 
-Xm: -x + y + z,
-Ym: x - y + z,
-Zm: x + y - z,
-Wm: x + y + z,
+xm: -x + y + z,
+ym: x - y + z,
+zm: x + y - z,
+wm: x + y + z,
 
-Xm+Ym= (-x+y+z)+(x-y+z) = 2z
+xm+ym= (-x+y+z)+(x-y+z) = 2z
 
-Zm+Wm= (x+y-z)+(x+y+z) = 2x+2y
+zm+wm= (x+y-z)+(x+y+z) = 2x+2y
 
 */
 
 func (p MPoint) Coords() (x, y, z int) {
-	x = (p.Ym + p.Zm) / 2
-	y = (p.Xm + p.Zm) / 2
-	z = (p.Xm + p.Ym) / 2
+	x = (p[1] + p[2]) / 2
+	y = (p[0] + p[2]) / 2
+	z = (p[0] + p[1]) / 2
 	return
 }
 
@@ -78,10 +76,10 @@ func (b MBox) Volume() int {
 }
 
 func (b MBox) Empty() bool {
-	return b.Min.Xm >= b.Max.Xm ||
-		b.Min.Ym >= b.Max.Ym ||
-		b.Min.Zm >= b.Max.Zm ||
-		b.Min.Wm >= b.Max.Wm
+	return b.Min[0] >= b.Max[0] ||
+		b.Min[1] >= b.Max[1] ||
+		b.Min[2] >= b.Max[2] ||
+		b.Min[3] >= b.Max[3]
 }
 
 func (a MBox) Extend(b MBox) MBox {
@@ -94,47 +92,47 @@ func (a MBox) Extend(b MBox) MBox {
 
 	return MBox{
 		Min: MPoint{
-			min(a.Min.Xm, b.Min.Xm),
-			min(a.Min.Ym, b.Min.Ym),
-			min(a.Min.Zm, b.Min.Zm),
-			min(a.Min.Wm, b.Min.Wm),
+			min(a.Min[0], b.Min[0]),
+			min(a.Min[1], b.Min[1]),
+			min(a.Min[2], b.Min[2]),
+			min(a.Min[3], b.Min[3]),
 		},
 		Max: MPoint{
-			max(a.Max.Xm, b.Max.Xm),
-			max(a.Max.Ym, b.Max.Ym),
-			max(a.Max.Zm, b.Max.Zm),
-			max(a.Max.Wm, b.Max.Wm),
+			max(a.Max[0], b.Max[0]),
+			max(a.Max[1], b.Max[1]),
+			max(a.Max[2], b.Max[2]),
+			max(a.Max[3], b.Max[3]),
 		},
 	}
 }
 
 func (a MBox) Intersect(b MBox) MBox {
-	if a.Min.Xm < b.Min.Xm {
-		a.Min.Xm = b.Min.Xm
+	if a.Min[0] < b.Min[0] {
+		a.Min[0] = b.Min[0]
 	}
-	if a.Max.Xm > b.Max.Xm {
-		a.Max.Xm = b.Max.Xm
-	}
-
-	if a.Min.Ym < b.Min.Ym {
-		a.Min.Ym = b.Min.Ym
-	}
-	if a.Max.Ym > b.Max.Ym {
-		a.Max.Ym = b.Max.Ym
+	if a.Max[0] > b.Max[0] {
+		a.Max[0] = b.Max[0]
 	}
 
-	if a.Min.Zm < b.Min.Zm {
-		a.Min.Zm = b.Min.Zm
+	if a.Min[1] < b.Min[1] {
+		a.Min[1] = b.Min[1]
 	}
-	if a.Max.Zm > b.Max.Zm {
-		a.Max.Zm = b.Max.Zm
+	if a.Max[1] > b.Max[1] {
+		a.Max[1] = b.Max[1]
 	}
 
-	if a.Min.Wm < b.Min.Wm {
-		a.Min.Wm = b.Min.Wm
+	if a.Min[2] < b.Min[2] {
+		a.Min[2] = b.Min[2]
 	}
-	if a.Max.Wm > b.Max.Wm {
-		a.Max.Wm = b.Max.Wm
+	if a.Max[2] > b.Max[2] {
+		a.Max[2] = b.Max[2]
+	}
+
+	if a.Min[3] < b.Min[3] {
+		a.Min[3] = b.Min[3]
+	}
+	if a.Max[3] > b.Max[3] {
+		a.Max[3] = b.Max[3]
 	}
 
 	if a.Empty() {
@@ -144,37 +142,50 @@ func (a MBox) Intersect(b MBox) MBox {
 	return a
 }
 
-func (b MBox) MinPoint(upto int) (x, y, z int, ok bool) {
-	var cross MBox
-	for i := 1; i < upto; i++ {
-		c := Equidist(0, 0, 0, i).Intersect(b)
-		if !c.Empty() {
-			cross = c
-			break
-		}
-	}
+const (
+	maxuint = ^uint(0)
+	maxint  = int(maxuint >> 1)
+)
 
-	if cross.Empty() {
+func (b MBox) MinPoint() (x, y, z int, ok bool) {
+	if b.Empty() {
 		return 0, 0, 0, false
 	}
 
-	first := true
+	lo, hi := 0, maxint/4
+	for lo+1 != hi {
+		mid := (hi + lo) / 2
+		t := Equidist(0, 0, 0, mid).Intersect(b)
+		if t.Empty() {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+
+	cross := Equidist(0, 0, 0, hi+1).Intersect(b)
+
+	if cross.Empty() {
+		panic("impossible")
+	}
+
+	ok = false
 	var mx, my, mz int
 	cross.WalkPoints(func(x, y, z int) {
-		if first || x < mx || (x == mx && y < my) || (x == mx && y == my && z < mz) {
+		if !ok || x < mx || (x == mx && y < my) || (x == mx && y == my && z < mz) {
 			mx, my, mz = x, y, z
-			first = false
+			ok = true
 		}
 	})
-	return mx, my, mz, true
+	return mx, my, mz, ok
 }
 
 func (bb MBox) WalkPoints(f func(x, y, z int)) {
-	for xm := bb.Min.Xm; xm < bb.Max.Xm; xm++ {
-		for ym := bb.Min.Ym; ym < bb.Max.Ym; ym++ {
-			for zm := bb.Min.Zm; zm < bb.Max.Zm; zm++ {
-				for wm := bb.Min.Wm; wm < bb.Max.Wm; wm++ {
-					p := MPoint{Xm: xm, Ym: ym, Zm: zm, Wm: wm}
+	for xm := bb.Min[0]; xm < bb.Max[0]; xm++ {
+		for ym := bb.Min[1]; ym < bb.Max[1]; ym++ {
+			for zm := bb.Min[2]; zm < bb.Max[2]; zm++ {
+				for wm := bb.Min[3]; wm < bb.Max[3]; wm++ {
+					p := MPoint{xm, ym, zm, wm}
 					x, y, z := p.Coords()
 					if MPt(x, y, z) == p {
 						f(x, y, z)
@@ -187,11 +198,11 @@ func (bb MBox) WalkPoints(f func(x, y, z int)) {
 
 func (bb MBox) NumPoints() int {
 	n := 0
-	for xm := bb.Min.Xm; xm < bb.Max.Xm; xm++ {
-		for ym := bb.Min.Ym; ym < bb.Max.Ym; ym++ {
-			for zm := bb.Min.Zm; zm < bb.Max.Zm; zm++ {
-				for wm := bb.Min.Wm; wm < bb.Max.Wm; wm++ {
-					p := MPoint{Xm: xm, Ym: ym, Zm: zm, Wm: wm}
+	for xm := bb.Min[0]; xm < bb.Max[0]; xm++ {
+		for ym := bb.Min[1]; ym < bb.Max[1]; ym++ {
+			for zm := bb.Min[2]; zm < bb.Max[2]; zm++ {
+				for wm := bb.Min[3]; wm < bb.Max[3]; wm++ {
+					p := MPoint{xm, ym, zm, wm}
 					if p.Valid() {
 						n++
 					}
