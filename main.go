@@ -45,6 +45,7 @@ func main() {
 	add(22, modemaze22)
 	add(23, teleport23)
 	add(24, immunesysbattle)
+	add(25, constellations)
 
 	if flag.NArg() == 0 {
 		for _, p := range puzzles {
